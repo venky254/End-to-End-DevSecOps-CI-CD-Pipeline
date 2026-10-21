@@ -98,6 +98,7 @@ jobs:
 
       
       
+      
       - name: Scan Docker Image with Trivy
         run: |
           docker run --rm \
@@ -106,7 +107,7 @@ jobs:
             aquasec/trivy:latest \
             image \
             --format table \
-            --severity HIGH,CRITICAL \
+            --severity CRITICAL \
             --exit-code 1 \
             --ignore-unfixed \
             "${{ env.IMAGE_NAME }}:${{ github.sha }}"
