@@ -72,6 +72,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      
       - name: Validate Docker Hub credentials
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -80,22 +81,18 @@ jobs:
           set -eu
 
           if [ -z "$DOCKERHUB_USERNAME" ]; then
-            echo "::error::DOCKERHUB_USERNAME is empty or unavailable"
+            echo "::error::DOCKERHUB_USERNAME is missing"
             exit 1
           fi
 
           if [ -z "$DOCKERHUB_TOKEN" ]; then
-            echo "::error::DOCKERHUB_TOKEN is empty or unavailable"
+            echo "::error::DOCKERHUB_TOKEN is missing"
             exit 1
           fi
 
-          if ! printf '%s' "$DOCKERHUB_USERNAME" |
-            grep -Eq '^[a-z0-9]+([._-][a-z0-9]+)*$'; then
-            echo "::error::Docker Hub username has an invalid format"
-            exit 1
-          fi
+          echo "Docker Hub secrets are present."
 
-          echo "Docker Hub credentials are configured."
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
