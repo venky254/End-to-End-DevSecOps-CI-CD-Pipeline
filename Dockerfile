@@ -1,8 +1,10 @@
+
 FROM node:22-alpine
 ENV NODE_ENV=production
 WORKDIR /app
-COPY package.json ./
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 COPY app.js ./
-EXPOSE 3000
 USER node
-CMD ["npm", "start"]
+EXPOSE 3000
+CMD ["node", "app.js"]

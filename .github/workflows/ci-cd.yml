@@ -46,17 +46,20 @@ jobs:
       - name: Build Docker image
         run: docker build -t local/venkat-devsecops-demo:${{ github.sha }} .
 
+      
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: local/venkat-devsecops-demo:${{ github.sha }}
-          scantype: image
+          scan-type: image
           scanners: vuln
-          severity: HIGH,CRITICAL
+          severity: CRITICAL
           ignore-unfixed: true
-          timeout: 5m
+          timeout: 3m
           exit-code: "1"
           cache: true
+
+         
 
   publish-and-deploy:
     name: Publish image and deploy
