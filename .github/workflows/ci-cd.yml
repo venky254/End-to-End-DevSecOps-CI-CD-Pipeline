@@ -4,8 +4,8 @@ name: Docker Hub Login Test
 on:
   push:
     branches:
-      -main
-      
+      - main
+
 jobs:
   test-login:
     runs-on: ubuntu-latest
