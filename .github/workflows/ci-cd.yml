@@ -73,26 +73,32 @@ jobs:
         uses: actions/checkout@v4
 
       
-      - name: Validate Docker Hub credentials
+      -
+      - name: Diagnose Docker Hub username
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          set -eu
-
           if [ -z "$DOCKERHUB_USERNAME" ]; then
-            echo "::error::DOCKERHUB_USERNAME is missing"
+            echo "RESULT: Username is empty or unavailable"
             exit 1
           fi
 
           if [ -z "$DOCKERHUB_TOKEN" ]; then
-            echo "::error::DOCKERHUB_TOKEN is missing"
+            echo "RESULT: Token is empty or unavailable"
             exit 1
           fi
 
-          echo "Docker Hub secrets are present."
-
+          echo "RESULT: Both secrets are available"
+          echo "Username length: ${#DOCKERHUB_USERNAME}"
+          echo "Username contains whitespace:"
+          if [[ "$DOCKERHUB_USERNAME" =~ [[:space:]] ]]; then
+            echo "Yes"
+          else
+            echo "No"
           fi
+
+        
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
