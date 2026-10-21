@@ -83,14 +83,16 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.IMAGE_NAME }}:latest
+          - name: Verify Docker Hub username
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          if [ -z "$DOCKERHUB_USERNAME" ]; then
+            echo "ERROR: DOCKERHUB_USERNAME is empty or unavailable"
+            exit 1
+          else
+            echo "Docker Hub username secret is available"
+          fi
 
       - name: Deploy to EC2
         if: ${{ env.EC2_HOST != '' && env.EC2_USER != '' && env.EC2_SSH_KEY != '' }}
