@@ -50,10 +50,13 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: local/venkat-devsecops-demo:${{ github.sha }}
-          format: table
+          scantype: image
+          scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          timeout: 5m
           exit-code: "1"
+          cache: true
 
   publish-and-deploy:
     name: Publish image and deploy
