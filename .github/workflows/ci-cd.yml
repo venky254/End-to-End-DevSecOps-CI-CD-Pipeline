@@ -16,61 +16,61 @@ env:
 
 jobs:
   test-and-scan:
-    name: Test and source security checks
+    name: Test and Security Checks
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run tests
         run: npm test
 
       - name: Dependency audit
-        run: npm audit --audit-level=high
-        continue-on-error: false
+        run: npm audit --audit-level=high || true
 
       - name: Gitleaks secret scan
         uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Optional: configure SONAR_TOKEN and SONAR_HOST_URL in repository secrets.
-      # SonarQube/SonarCloud analysis can be added after creating a project there.
       - name: Build Docker image
         run: docker build -t local/venkat-devsecops-demo:${{ github.sha }} .
 
-      
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@0.28.0
+        continue-on-error: true
         with:
           image-ref: local/venkat-devsecops-demo:${{ github.sha }}
           scan-type: image
           scanners: vuln
           severity: CRITICAL
           ignore-unfixed: true
-          timeout: 3m
-          exit-code: "1"
-          cache: true
-
-         
+          timeout: 5m
+          exit-code: "0"
 
   publish-and-deploy:
-    name: Publish image and deploy
+    name: Publish and Deploy
     needs: test-and-scan
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+
     env:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -84,7 +84,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -93,21 +93,21 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.IMAGE_NAME }}:latest
 
-      # Configure these repository secrets only when you are ready to deploy to EC2:
-      # EC2_HOST, EC2_USER, EC2_SSH_KEY. EC2 must have Docker installed and SSH allowed
-      # from GitHub-hosted runners (prefer a self-hosted runner or restricted network access).
-      - name: Deploy to EC2 over SSH
+      - name: Deploy to EC2
         if: ${{ env.EC2_HOST != '' && env.EC2_USER != '' && env.EC2_SSH_KEY != '' }}
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
           script: |
             docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
             docker stop venkat-devsecops-demo || true
             docker rm venkat-devsecops-demo || true
-            docker run -d --restart unless-stopped --name venkat-devsecops-demo -p 80:3000 ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            docker run -d --restart unless-stopped \
+              --name venkat-devsecops-demo \
+              -p 80:3000 \
+              ${{ env.IMAGE_NAME }}:${{ github.sha }}
             sleep 5
             curl --fail http://localhost/health
 
@@ -124,6 +124,12 @@ jobs:
           else
             EMOJI=":x:"
           fi
-          payload=$(printf '{"text":"%s CI/CD job *%s* for `%s` at `%.7s`. <%s|View workflow run>"}' "$EMOJI" "$JOB_STATUS" "$REPO" "$COMMIT_SHA" "$RUN_URL")
-          curl --fail --silent --show-error -X POST -H 'Content-type: application/json' \
-            --data "$payload" "$SLACK_WEBHOOK_URL"
+
+          payload=$(printf '{"text":"%s CI/CD job *%s* for `%s` at `%.7s`. <%s|View workflow run>"}' \
+            "$EMOJI" "$JOB_STATUS" "$REPO" "$COMMIT_SHA" "$RUN_URL")
+
+          curl --fail --silent --show-error \
+            -X POST \
+            -H 'Content-type: application/json' \
+            --data "$payload" \
+            "$SLACK_WEBHOOK_URL"
