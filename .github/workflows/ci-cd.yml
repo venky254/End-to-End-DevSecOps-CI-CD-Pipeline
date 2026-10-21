@@ -99,13 +99,18 @@ jobs:
       
       
       - name: Scan Docker Image with Trivy
-        uses: aquasecurity/trivy-action@0.32.0
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          format: table
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$HOME/.cache:/root/.cache" \
+            aquasec/trivy:latest \
+            image \
+            --format table \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            "${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
 
 
 
