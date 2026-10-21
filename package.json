@@ -1,0 +1,13 @@
+{
+  "name": "venkat-devsecops-demo",
+  "version": "1.0.0",
+  "description": "Starter application for a GitHub Actions DevSecOps CI/CD pipeline",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
