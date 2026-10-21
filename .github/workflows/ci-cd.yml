@@ -2,6 +2,7 @@
 name: Docker Hub Login Test
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
