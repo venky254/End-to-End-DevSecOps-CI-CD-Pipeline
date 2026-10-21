@@ -11,14 +11,11 @@ on:
 permissions:
   contents: read
 
-env:
-  NODE_VERSION: "22"
-
 jobs:
   test-and-scan:
     name: Test and Security Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout source
@@ -69,17 +66,19 @@ jobs:
       github.event_name != 'pull_request' &&
       github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Verify Docker Hub secrets
+      - name: Validate Docker Hub credentials
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          set -eu
+
           if [ -z "$DOCKERHUB_USERNAME" ]; then
             echo "::error::DOCKERHUB_USERNAME is empty or unavailable"
             exit 1
@@ -87,6 +86,12 @@ jobs:
 
           if [ -z "$DOCKERHUB_TOKEN" ]; then
             echo "::error::DOCKERHUB_TOKEN is empty or unavailable"
+            exit 1
+          fi
+
+          if ! printf '%s' "$DOCKERHUB_USERNAME" |
+            grep -Eq '^[a-z0-9]+([._-][a-z0-9]+)*$'; then
+            echo "::error::Docker Hub username has an invalid format"
             exit 1
           fi
 
@@ -121,23 +126,8 @@ jobs:
           REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          set -eu
+
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "Slack webhook is not configured. Skipping notification."
-            exit 0
-          fi
-
-          if [ "$JOB_STATUS" = "success" ]; then
-            EMOJI=":white_check_mark:"
-          else
-            EMOJI=":x:"
-          fi
-
-          payload=$(printf '{"text":"%s CI/CD job *%s* for `%s` at `%.7s`. <%s|View workflow run>"}' \
-            "$EMOJI" "$JOB_STATUS" "$REPO" "$COMMIT_SHA" "$RUN_URL")
-
-          curl --fail --silent --show-error \
-            --max-time 10 \
-            -X POST \
-            -H 'Content-type: application/json' \
-            --data "$payload" \
-            "$SLACK_WEBHOOK_URL"
+           
