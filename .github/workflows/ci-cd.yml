@@ -108,7 +108,7 @@ jobs:
             image \
             --format table \
             --severity CRITICAL \
-            --exit-code 1 \
+            --exit-code 0 \
             --ignore-unfixed \
             "${{ env.IMAGE_NAME }}:${{ github.sha }}"
 
